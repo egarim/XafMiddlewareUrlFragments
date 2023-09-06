@@ -18,6 +18,7 @@ using Newtonsoft.Json;
 
 namespace XAF.Blazor.Server
 {
+    //HACK to test use this url https://localhost:44318/LoginPage#id_token=abc123&token_type=bearer
     public class AutoSignInMiddleware
     {
         private readonly RequestDelegate next;
