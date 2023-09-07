@@ -19,6 +19,7 @@ using Newtonsoft.Json;
 namespace XAF.Blazor.Server
 {
     //HACK to test use this url https://localhost:44318/LoginPage#id_token=abc123&token_type=bearer
+    //HACK to test use this url https://localhost:44318/LoginPage#id_token=Admin&token_type=bearer
     public class AutoSignInMiddleware
     {
         private readonly RequestDelegate next;
@@ -40,9 +41,32 @@ namespace XAF.Blazor.Server
 
                 if (payload != null && payload.TryGetValue("id_token", out string idToken))
                 {
-                    var test = idToken;
-                    // Now you have the ID token on the server side
-                    // Do something with it, like validation or saving it for further use
+                   
+                    using (XPObjectSpaceProvider directProvider = new XPObjectSpaceProvider(configuration.GetConnectionString("ConnectionString")))
+                    using (IObjectSpace directObjectSpace = directProvider.CreateObjectSpace())
+                    {
+                        var  User = directObjectSpace.FindObject<ApplicationUser>(CriteriaOperator.Parse("UserName=?", idToken));
+                        
+                        if(User!=null)
+                        {
+                            var identityCreator = context.RequestServices.GetRequiredService<IStandardAuthenticationIdentityCreator>();
+                            ClaimsIdentity id = identityCreator.CreateIdentity(User.Oid.ToString(), User.UserName);
+                            await context.SignInAsync(new ClaimsPrincipal(id));
+                        }
+                        else
+                        {
+                            await next(context);
+                        }
+                        
+                      
+                       
+                        
+
+                    }
+                }
+                else
+                {
+                    await next(context);
                 }
             }
             else
@@ -51,53 +75,7 @@ namespace XAF.Blazor.Server
             }
 
 
-            //string userId = context.Request.Query["UserID"];
-            //Guid userOid = Guid.Empty;
-            //ApplicationUser myUser = null;
-            //if (Guid.TryParse(userId, out userOid))
-            //{
-            //    if (!(context.User?.Identity.IsAuthenticated ?? false) && !string.IsNullOrEmpty(userId))
-            //    {
-            //        bool autoLoginOK = false;
-            //        if (configuration.GetConnectionString("ConnectionString") != null)
-            //        {
-            //            using (XPObjectSpaceProvider directProvider = new XPObjectSpaceProvider(configuration.GetConnectionString("ConnectionString")))
-            //            using (IObjectSpace directObjectSpace = directProvider.CreateObjectSpace())
-            //            {
-            //                 myUser = directObjectSpace.FindObject<ApplicationUser>(CriteriaOperator.Parse("Oid=?", userOid));
-            //                if (myUser != null)
-            //                    if (myUser.AutoLoginByURL) 
-            //                    {
-            //                        autoLoginOK = true;
-            //                    }
-            //            }
-            //        }
-
-            //        if (autoLoginOK)
-            //        {
-
-
-            //            var identityCreator = context.RequestServices.GetRequiredService<IStandardAuthenticationIdentityCreator>();
-            //            ClaimsIdentity id = identityCreator.CreateIdentity(myUser.Oid.ToString(), myUser.UserName);
-            //            await context.SignInAsync(new ClaimsPrincipal(id));
-            //            context.Response.Redirect("/");
-
-            //            //ClaimsIdentity id = new ClaimsIdentity(SecurityDefaults.DefaultClaimsIssuer);
-            //            //Claim claim = new Claim(ClaimTypes.NameIdentifier, userId, ClaimValueTypes.String, SecurityDefaults.Issuer);
-            //            //id.AddClaim(claim);
-            //            //await context.SignInAsync(new ClaimsPrincipal(id));
-            //            //context.Response.Redirect("/");
-            //        }
-            //        else
-            //            await next(context);
-            //    }
-            //    else
-            //        await next(context);
-            //}
-            //else
-            //{
-            //    await next(context);
-            //}
+           
         }
     }
 }
