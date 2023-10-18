@@ -45,18 +45,22 @@ namespace XAF.Blazor.Server
                     using (XPObjectSpaceProvider directProvider = new XPObjectSpaceProvider(configuration.GetConnectionString("ConnectionString")))
                     using (IObjectSpace directObjectSpace = directProvider.CreateObjectSpace())
                     {
-                        var  User = directObjectSpace.FindObject<ApplicationUser>(CriteriaOperator.Parse("UserName=?", idToken));
-                        
-                        if(User!=null)
+                        if (idToken != null)
                         {
-                            var identityCreator = context.RequestServices.GetRequiredService<IStandardAuthenticationIdentityCreator>();
-                            ClaimsIdentity id = identityCreator.CreateIdentity(User.Oid.ToString(), User.UserName);
-                            await context.SignInAsync(new ClaimsPrincipal(id));
+                            var User = directObjectSpace.FindObject<ApplicationUser>(CriteriaOperator.Parse("UserName=?", "Admin"));
+
+                            if (User != null)
+                            {
+                                var identityCreator = context.RequestServices.GetRequiredService<IStandardAuthenticationIdentityCreator>();
+                                ClaimsIdentity id = identityCreator.CreateIdentity(User.Oid.ToString(), User.UserName);
+                                await context.SignInAsync(new ClaimsPrincipal(id));
+                            }
+                            else
+                            {
+                                await next(context);
+                            }
                         }
-                        else
-                        {
-                            await next(context);
-                        }
+                       
                         
                       
                        
